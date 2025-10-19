@@ -9,6 +9,10 @@ const archiver = require('archiver');
 const app = express();
 const port = 3000;
 
+// In-memory storage for shared file paths
+let sharedFiles = [];
+let shareId = null;
+
 // Get local IP address
 const interfaces = os.networkInterfaces();
 let localIP;
@@ -27,8 +31,8 @@ if (!localIP) {
   process.exit(1);
 }
 
-// Serve static files from the 'files' directory
-app.use(express.static('files'));
+// Serve static files from src directory
+app.use(express.static(path.join(__dirname)));
 
 app.use(fileUpload());
 
@@ -39,51 +43,62 @@ app.get('/', (req, res) => {
 
 // Download all files as zip
 app.get('/download-all', (req, res) => {
+  if (!sharedFiles.length) {
+    return res.status(404).send('No files shared');
+  }
   const archive = archiver('zip', { zlib: { level: 9 } });
   res.setHeader('Content-Type', 'application/zip');
   res.setHeader('Content-Disposition', 'attachment; filename="shared-files.zip"');
   archive.pipe(res);
-  fs.readdirSync('files').forEach(file => {
-    archive.file(path.join('files', file), { name: file });
+  sharedFiles.forEach(file => {
+    archive.append(file.data, { name: file.name });
   });
   archive.finalize();
 });
 
+// Serve individual files
+app.get('/file/:fileName', (req, res) => {
+  const fileName = decodeURIComponent(req.params.fileName);
+  const file = sharedFiles.find(f => f.name === fileName);
+  if (!file) {
+    return res.status(404).send('File not found');
+  }
+  res.setHeader('Content-Type', file.mimetype || 'application/octet-stream');
+  res.setHeader('Content-Disposition', `attachment; filename="${file.name}"`);
+  res.send(file.data);
+});
+
 // Route to list shared files
 app.get('/files', (req, res) => {
-  fs.readdir('files', (err, files) => {
-    if (err) {
-      return res.status(500).send('Error reading files');
-    }
-    let html = `
-    <html>
-    <head>
-      <title>Shared Files</title>
-      <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        h1 { color: #333; }
-        ul { list-style-type: none; padding: 0; }
-        li { margin: 10px 0; }
-        a { text-decoration: none; color: #007bff; }
-        a:hover { text-decoration: underline; }
-        button { background: #28a745; color: white; border: none; padding: 10px 20px; cursor: pointer; }
-        button:hover { background: #218838; }
-      </style>
-    </head>
-    <body>
-      <h1>Shared Files</h1>
-      <button onclick="window.location.href='/download-all'">Download All</button>
-      <ul>`;
-    files.forEach(file => {
-      const filePath = path.join('files', file);
-      const stats = fs.statSync(filePath);
-      const size = stats.size;
-      const sizeStr = size > 1024 * 1024 ? `${(size / (1024 * 1024)).toFixed(1)} MB` : size > 1024 ? `${(size / 1024).toFixed(1)} KB` : `${size} B`;
-      html += `<li><a href="/${file}">${file}</a> (${sizeStr})</li>`;
-    });
-    html += `</ul></body></html>`;
-    res.send(html);
+  if (!sharedFiles.length) {
+    return res.send('<html><body><h1>No files shared</h1><a href="/">Back to selection</a></body></html>');
+  }
+  let html = `
+  <html>
+  <head>
+    <title>Shared Files</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 20px; }
+      h1 { color: #333; }
+      ul { list-style-type: none; padding: 0; }
+      li { margin: 10px 0; }
+      a { text-decoration: none; color: #007bff; }
+      a:hover { text-decoration: underline; }
+      button { background: #28a745; color: white; border: none; padding: 10px 20px; cursor: pointer; }
+      button:hover { background: #218838; }
+    </style>
+  </head>
+  <body>
+    <h1>Shared Files</h1>
+    <button onclick="window.location.href='/download-all'">Download All</button>
+    <a href="/">Share More Files</a>
+    <ul>`;
+  sharedFiles.forEach(file => {
+    const sizeStr = file.size > 1024 * 1024 ? `${(file.size / (1024 * 1024)).toFixed(1)} MB` : file.size > 1024 ? `${(file.size / 1024).toFixed(1)} KB` : `${file.size} B`;
+    html += `<li><a href="/file/${encodeURIComponent(file.name)}">${file.name}</a> (${sizeStr})</li>`;
   });
+  html += `</ul></body></html>`;
+  res.send(html);
 });
 
 // Upload route
@@ -93,11 +108,21 @@ app.post('/upload', (req, res) => {
   }
   let uploadedFiles = req.files.file;
   if (!Array.isArray(uploadedFiles)) uploadedFiles = [uploadedFiles];
+
+  // Clear previous shared files and generate new share ID
+  sharedFiles = [];
+  shareId = Date.now().toString();
+
   uploadedFiles.forEach(file => {
-    file.mv(path.join(__dirname, '..', 'files', file.name), (err) => {
-      if (err) return res.status(500).send(err);
+    // Store file info in memory instead of moving to disk
+    sharedFiles.push({
+      name: file.name,
+      data: file.data,
+      size: file.size,
+      mimetype: file.mimetype
     });
   });
+
   const shareUrl = `http://${localIP}:${port}/files`;
   qrcode.toDataURL(shareUrl, (err, dataUrl) => {
     if (err) return res.status(500).send('Error generating QR');
@@ -117,7 +142,7 @@ app.post('/upload', (req, res) => {
     <body>
       <h1>Files Shared Successfully</h1>
       <ul>`;
-    uploadedFiles.forEach(file => {
+    sharedFiles.forEach(file => {
       html += `<li>${file.name}</li>`;
     });
     html += `</ul>
