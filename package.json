@@ -1,0 +1,15 @@
+{
+  "name": "qshare",
+  "version": "1.0.0",
+  "description": "Simple file sharing over local network",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "bun src/index.js"
+  },
+  "dependencies": {
+    "archiver": "^7.0.1",
+    "express": "^4.18.2",
+    "express-fileupload": "^1.4.0",
+    "qrcode": "^1.5.3"
+  }
+}
