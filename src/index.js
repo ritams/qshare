@@ -9,6 +9,28 @@ const archiver = require('archiver');
 const app = express();
 const port = 3000;
 
+// Helper functions for HTML generation
+function getFileIcon(mimeType) {
+  if (!mimeType) return '📄';
+  if (mimeType.startsWith('image/')) return '🖼️';
+  if (mimeType.startsWith('video/')) return '🎥';
+  if (mimeType.startsWith('audio/')) return '🎵';
+  if (mimeType.includes('pdf')) return '📄';
+  if (mimeType.includes('zip') || mimeType.includes('rar')) return '📦';
+  if (mimeType.includes('text')) return '📝';
+  return '📄';
+}
+
+function escapeHtml(text) {
+  if (typeof text !== 'string') return text;
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // In-memory storage for shared file paths
 let sharedFiles = [];
 let shareId = null;
@@ -71,33 +93,310 @@ app.get('/file/:fileName', (req, res) => {
 // Route to list shared files
 app.get('/files', (req, res) => {
   if (!sharedFiles.length) {
-    return res.send('<html><body><h1>No files shared</h1><a href="/">Back to selection</a></body></html>');
+    return res.send(`<!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>No Files Shared - QShare</title>
+      <link rel="preconnect" href="https://fonts.googleapis.com">
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+      <style>
+        :root {
+          --accent-color: #6366F1;
+          --accent-light: #8B5CF6;
+          --light-bg: #FFFFFF;
+          --light-gray: #F8F9FA;
+          --medium-gray: #E9ECEF;
+          --dark-gray: #495057;
+          --text-primary: #212529;
+          --text-secondary: #6C757D;
+          --border-color: #DEE2E6;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          background: linear-gradient(135deg, var(--light-gray) 0%, var(--medium-gray) 100%);
+          color: var(--text-primary);
+          min-height: 100vh;
+        }
+
+        .container {
+          max-width: 800px;
+          margin: 0 auto;
+          padding: 2rem;
+          min-height: 100vh;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+          text-align: center;
+        }
+
+        .logo {
+          font-size: 3rem;
+          font-weight: 700;
+          color: var(--accent-color);
+          margin-bottom: 1rem;
+          letter-spacing: -0.02em;
+        }
+
+        .message {
+          font-size: 1.25rem;
+          color: var(--text-secondary);
+          margin-bottom: 2rem;
+        }
+
+        .action-button {
+          background: linear-gradient(45deg, var(--accent-color), var(--accent-light));
+          color: white;
+          border: none;
+          padding: 1rem 2rem;
+          font-size: 1rem;
+          font-weight: 600;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          text-decoration: none;
+          display: inline-block;
+        }
+
+        .action-button:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
+        }
+
+        @media (max-width: 768px) {
+          .container { padding: 1rem; }
+          .logo { font-size: 2.5rem; }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <h1 class="logo">QShare</h1>
+        <p class="message">No files are currently shared</p>
+        <a href="/" class="action-button">Share Files</a>
+      </div>
+    </body>
+    </html>`);
   }
+
   let html = `
-  <html>
+  <!DOCTYPE html>
+  <html lang="en">
   <head>
-    <title>Shared Files</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shared Files - QShare</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-      body { font-family: Arial, sans-serif; margin: 20px; }
-      h1 { color: #333; }
-      ul { list-style-type: none; padding: 0; }
-      li { margin: 10px 0; }
-      a { text-decoration: none; color: #007bff; }
-      a:hover { text-decoration: underline; }
-      button { background: #28a745; color: white; border: none; padding: 10px 20px; cursor: pointer; }
-      button:hover { background: #218838; }
+      :root {
+        --accent-color: #6366F1;
+        --accent-light: #8B5CF6;
+        --accent-subtle: rgba(99, 102, 241, 0.1);
+        --light-bg: #FFFFFF;
+        --light-gray: #F8F9FA;
+        --medium-gray: #E9ECEF;
+        --dark-gray: #495057;
+        --text-primary: #212529;
+        --text-secondary: #6C757D;
+        --border-color: #DEE2E6;
+        --success: #28A745;
+        --shadow: rgba(0, 0, 0, 0.1);
+      }
+
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+
+      body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: linear-gradient(135deg, var(--light-gray) 0%, var(--medium-gray) 100%);
+        color: var(--text-primary);
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+
+      .container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 2rem;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 2rem;
+      }
+
+      .logo {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: var(--accent-color);
+        margin-bottom: 0.5rem;
+        letter-spacing: -0.02em;
+      }
+
+      .subtitle {
+        color: var(--text-secondary);
+        font-size: 1.1rem;
+        font-weight: 400;
+      }
+
+      .files-section {
+        background: var(--light-bg);
+        border-radius: 16px;
+        padding: 2rem;
+        border: 1px solid var(--border-color);
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 16px var(--shadow);
+      }
+
+      .section-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .section-title::before {
+        content: '';
+        width: 4px;
+        height: 20px;
+        background: var(--accent-color);
+        border-radius: 2px;
+      }
+
+      .file-list {
+        list-style: none;
+        padding: 0;
+        margin-bottom: 2rem;
+      }
+
+      .file-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 1rem;
+        background: var(--accent-subtle);
+        border-radius: 12px;
+        margin-bottom: 0.75rem;
+        border: 1px solid rgba(99, 102, 241, 0.2);
+        transition: all 0.2s ease;
+        box-shadow: 0 1px 4px var(--shadow);
+      }
+
+      .file-item:hover {
+        background: rgba(99, 102, 241, 0.15);
+        transform: translateY(-1px);
+      }
+
+      .file-info {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex: 1;
+        min-width: 0;
+      }
+
+      .file-icon {
+        font-size: 1.5rem;
+        color: var(--accent-color);
+        flex-shrink: 0;
+      }
+
+      .file-details {
+        min-width: 0;
+        flex: 1;
+      }
+
+      .file-name {
+        font-weight: 500;
+        color: var(--text-primary);
+        margin-bottom: 0.25rem;
+        word-break: break-word;
+      }
+
+      .file-size {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+      }
+
+      .file-actions {
+        flex-shrink: 0;
+      }
+
+      .download-link {
+        background: linear-gradient(45deg, var(--accent-color), var(--accent-light));
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+        font-weight: 600;
+      }
+
+      .action-button.secondary:hover {
+        background: rgba(255, 255, 255, 0.8);
+      }
+
+      @media (max-width: 768px) {
+        .container { padding: 1rem; }
+        .logo { font-size: 2rem; }
+        .files-section { padding: 1.5rem; }
+        .file-item { flex-direction: column; align-items: flex-start; gap: 0.75rem; }
+        .file-actions { align-self: stretch; text-align: center; }
+        .actions-section { flex-direction: column; align-items: center; }
+      }
     </style>
   </head>
   <body>
-    <h1>Shared Files</h1>
-    <button onclick="window.location.href='/download-all'">Download All</button>
-    <a href="/">Share More Files</a>
-    <ul>`;
+    <div class="container">
+      <header class="header">
+        <h1 class="logo">QShare</h1>
+        <p class="subtitle">Access your shared files</p>
+      </header>
+
+      <div class="files-section">
+        <h2 class="section-title">Shared Files (${sharedFiles.length})</h2>
+        <ul class="file-list">`;
   sharedFiles.forEach(file => {
+    const icon = getFileIcon(file.mimetype);
     const sizeStr = file.size > 1024 * 1024 ? `${(file.size / (1024 * 1024)).toFixed(1)} MB` : file.size > 1024 ? `${(file.size / 1024).toFixed(1)} KB` : `${file.size} B`;
-    html += `<li><a href="/file/${encodeURIComponent(file.name)}">${file.name}</a> (${sizeStr})</li>`;
+    html += `
+          <li class="file-item">
+            <div class="file-info">
+              <span class="file-icon">${icon}</span>
+              <div class="file-details">
+                <div class="file-name">${escapeHtml(file.name)}</div>
+                <div class="file-size">${sizeStr}</div>
+              </div>
+            </div>
+            <div class="file-actions">
+              <a href="/file/${encodeURIComponent(file.name)}" class="download-link">Download</a>
+            </div>
+          </li>`;
   });
-  html += `</ul></body></html>`;
+  html += `
+        </ul>
+      </div>
+
+      <div class="actions-section">
+        <a href="/download-all" class="action-button">Download All Files</a>
+        <a href="/" class="action-button secondary">Share More Files</a>
+      </div>
+    </div>
+  </body>
+  </html>`;
   res.send(html);
 });
 
@@ -127,27 +426,231 @@ app.post('/upload', (req, res) => {
   qrcode.toDataURL(shareUrl, (err, dataUrl) => {
     if (err) return res.status(500).send('Error generating QR');
     let html = `
-    <html>
+    <!DOCTYPE html>
+    <html lang="en">
     <head>
-      <title>Files Shared</title>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Files Shared - QShare</title>
+      <link rel="preconnect" href="https://fonts.googleapis.com">
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
       <style>
-        body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 20px; text-align: center; }
-        h1 { color: #28a745; }
-        ul { list-style-type: none; padding: 0; display: inline-block; text-align: left; }
-        li { margin: 10px 0; }
-        img { margin: 20px 0; }
-        p { color: #666; }
+        :root {
+          --accent-color: #6366F1;
+          --accent-light: #8B5CF6;
+          --accent-subtle: rgba(99, 102, 241, 0.1);
+          --light-bg: #FFFFFF;
+          --light-gray: #F8F9FA;
+          --medium-gray: #E9ECEF;
+          --dark-gray: #495057;
+          --text-primary: #212529;
+          --text-secondary: #6C757D;
+          --border-color: #DEE2E6;
+          --success: #28A745;
+          --shadow: rgba(0, 0, 0, 0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          background: linear-gradient(135deg, var(--light-gray) 0%, var(--medium-gray) 100%);
+          color: var(--text-primary);
+          min-height: 100vh;
+          overflow-x: hidden;
+        }
+
+        .container {
+          max-width: 800px;
+          margin: 0 auto;
+          padding: 2rem;
+          min-height: 100vh;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+
+        .header {
+          text-align: center;
+          margin-bottom: 2rem;
+        }
+
+        .logo {
+          font-size: 2.5rem;
+          font-weight: 700;
+          color: var(--accent-color);
+          margin-bottom: 0.5rem;
+          letter-spacing: -0.02em;
+        }
+
+        .subtitle {
+          color: var(--text-secondary);
+          font-size: 1.1rem;
+          font-weight: 400;
+        }
+
+        .success-section {
+          background: var(--light-bg);
+          border-radius: 16px;
+          padding: 2rem;
+          text-align: center;
+          border: 1px solid var(--border-color);
+          margin-bottom: 2rem;
+          width: 100%;
+          max-width: 500px;
+          box-shadow: 0 2px 16px var(--shadow);
+        }
+
+        .success-icon {
+          font-size: 3rem;
+          color: var(--success);
+          margin-bottom: 1rem;
+        }
+
+        .success-title {
+          font-size: 1.5rem;
+          font-weight: 600;
+          color: var(--text-primary);
+          margin-bottom: 1rem;
+        }
+
+        .file-list {
+          list-style: none;
+          padding: 0;
+          margin-bottom: 2rem;
+        }
+
+        .file-item {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          padding: 0.75rem;
+          background: var(--accent-subtle);
+          border-radius: 8px;
+          margin-bottom: 0.5rem;
+          border: 1px solid rgba(99, 102, 241, 0.2);
+        }
+
+        .file-icon {
+          font-size: 1.25rem;
+          color: var(--accent-color);
+        }
+
+        .file-name {
+          font-weight: 500;
+          color: var(--text-primary);
+          flex: 1;
+        }
+
+        .qr-section {
+          background: var(--light-bg);
+          border-radius: 16px;
+          padding: 2rem;
+          text-align: center;
+          border: 1px solid var(--border-color);
+          margin-bottom: 2rem;
+          width: 100%;
+          max-width: 500px;
+          box-shadow: 0 2px 16px var(--shadow);
+        }
+
+        .qr-title {
+          font-size: 1.25rem;
+          font-weight: 600;
+          color: var(--text-primary);
+          margin-bottom: 1rem;
+        }
+
+        .qr-code {
+          margin: 1rem 0;
+          border-radius: 12px;
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        .qr-instruction {
+          color: var(--text-secondary);
+          font-size: 0.95rem;
+          margin-top: 1rem;
+        }
+
+        .actions {
+          display: flex;
+          gap: 1rem;
+          justify-content: center;
+          flex-wrap: wrap;
+        }
+
+        .action-button {
+          background: linear-gradient(45deg, var(--accent-color), var(--accent-light));
+          color: white;
+          border: none;
+          padding: 0.75rem 1.5rem;
+          font-size: 0.95rem;
+          font-weight: 600;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          text-decoration: none;
+          display: inline-block;
+          box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+        }
+
+        .action-button:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
+        }
+
+        .action-button.secondary {
+          background: var(--light-bg);
+          color: var(--text-primary);
+          border: 1px solid var(--border-color);
+        }
+
+        .action-button.secondary:hover {
+          background: rgba(255, 255, 255, 0.8);
+        }
+
+        @media (max-width: 768px) {
+          .container { padding: 1rem; }
+          .logo { font-size: 2rem; }
+          .success-section, .qr-section { padding: 1.5rem; }
+          .actions { flex-direction: column; align-items: center; }
+        }
       </style>
     </head>
     <body>
-      <h1>Files Shared Successfully</h1>
-      <ul>`;
+      <div class="container">
+        <header class="header">
+          <h1 class="logo">QShare</h1>
+          <p class="subtitle">Files shared successfully!</p>
+        </header>
+
+        <div class="success-section">
+          <div class="success-icon">✓</div>
+          <h2 class="success-title">Files Shared Successfully</h2>
+          <ul class="file-list">`;
     sharedFiles.forEach(file => {
-      html += `<li>${file.name}</li>`;
+      const icon = getFileIcon(file.mimetype);
+      html += `<li class="file-item">
+        <span class="file-icon">${icon}</span>
+        <span class="file-name">${escapeHtml(file.name)}</span>
+      </li>`;
     });
     html += `</ul>
-      <img src="${dataUrl}" alt="QR Code">
-      <p>Scan the QR code to access the files.</p>
+        </div>
+
+        <div class="qr-section">
+          <h3 class="qr-title">Scan QR Code to Download</h3>
+          <img src="${dataUrl}" alt="QR Code" class="qr-code">
+          <p class="qr-instruction">Scan this QR code with your mobile device to access and download the shared files.</p>
+        </div>
+
+        <div class="actions">
+          <a href="/files" class="action-button">View Shared Files</a>
+          <a href="/" class="action-button secondary">Share More Files</a>
+        </div>
+      </div>
     </body>
     </html>`;
     res.send(html);

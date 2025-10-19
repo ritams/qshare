@@ -1,21 +1,37 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>QShare - Select Files</title>
-  <style>
-    body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 20px; }
-    h1 { color: #333; text-align: center; }
-    form { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-    input[type="file"] { margin: 10px 0; }
-    button { background: #007bff; color: white; border: none; padding: 10px 20px; cursor: pointer; border-radius: 4px; }
-    button:hover { background: #0056b3; }
-  </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QShare - Modern File Sharing</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <h1>Select Files to Share</h1>
-  <form action="/upload" method="post" enctype="multipart/form-data">
-    <input type="file" name="file" multiple required>
-    <button type="submit">Share</button>
-  </form>
+  <div class="container">
+    <header class="header">
+      <h1 class="logo">QShare</h1>
+      <p class="subtitle">Share files instantly over your local network</p>
+    </header>
+
+    <form id="share-form">
+      <div class="drop-zone">
+        <div class="drop-icon">⬆</div>
+        <div class="drop-text">Drop files here or click to browse</div>
+        <div class="drop-subtext">Supports drag & drop • Copy & paste • Multiple files</div>
+        <input type="file" name="file" class="file-input" multiple>
+      </div>
+
+      <div class="file-list" style="display: none;"></div>
+
+      <div class="share-section">
+        <button type="button" class="share-button" disabled>Select Files First</button>
+      </div>
+    </form>
+  </div>
+
+  <script src="script.js"></script>
 </body>
 </html>
