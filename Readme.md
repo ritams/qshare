@@ -1,10 +1,10 @@
 # QShare
 
-QShare is a simple app to share files over local network.
+QShare is a simple app to share files over local network with both web and native macOS desktop versions.
 
 ## ✨ Features
 
-- 🎨 **Modern Beautiful UI** with blood red theme across all pages
+- 🎨 **Modern Beautiful UI** with deep purple theme across all pages
 - 📁 **Drag & Drop** files directly into the interface
 - 📋 **Copy & Paste** support for easy file adding
 - 📱 **QR Code Sharing** for mobile devices
@@ -12,28 +12,30 @@ QShare is a simple app to share files over local network.
 - 🔒 **Local Network Only** - secure file sharing
 - 📱 **Responsive Design** - works on all devices
 - 🎯 **Intuitive UX** with toast notifications and loading states
+- 🍎 **macOS Desktop App** - native windowed application
 
 ## Usage
 
-1. Run `bun start` to start the server.
+### Web Version
+1. Run `bun run dev` to start the web server.
 2. Open http://localhost:3000 in your browser.
-3. **Drag & drop files** into the elegant omnibox, **paste files** with Ctrl+V, or click to browse.
-4. Click "Share Files" and scan the QR code with your mobile device.
-5. Download files directly from your phone/tablet.
+
+### macOS Desktop App
+1. Install dependencies: `bun install`
+2. Run in development: `bun run electron-dev`
+3. Or build for production: `bun run dist`
+4. The app opens as a regular desktop window
 
 **Note:** Files are now stored in memory temporarily instead of being copied to disk, making sharing faster and more efficient.
 
-## 🎨 User Interface
+## macOS Desktop App Features
 
-QShare features a modern, **light-themed** interface with:
-
-- **Subtle Deep Purple Accents** (#6366F1) for branding consistency
-- **Clean Light Background** with soft gradients
-- **Elegant Typography** using Inter font family
-- **Smooth Animations** and hover effects
-- **Text-based Icons** instead of emojis for a professional look
-- **Responsive Layout** that adapts to all screen sizes
-- **Consistent Design** across all pages (home, upload success, file list)
+- **Native macOS Window**: Standard macOS window with title bar and controls
+- **Resizable Window**: Adjust window size as needed (default 1000x700)
+- **Standard Window Behavior**: Minimize, maximize, close buttons work normally
+- **Background Server**: Express server runs while the app is open
+- **Clean Exit**: App quits completely when window is closed
+- **Custom Icon**: Purple "Q" icon in Dock and Application folder
 
 ## How to Add Files
 
@@ -42,12 +44,20 @@ QShare features a modern, **light-themed** interface with:
 - **File Browser**: Click the drop zone to open the traditional file selection dialog
 - **Multiple Files**: All methods support selecting multiple files at once
 
-## 📄 Pages
+## Pages
 
 - **Home Page** (`/`): Modern file selection with drag & drop interface
 - **Upload Success** (`/upload`): Shows shared files with prominent QR code
 - **File List** (`/files`): Displays shared files with individual download buttons
 - **Download All** (`/download-all`): Downloads all files as a ZIP archive
+
+## Development Scripts
+
+- `bun run dev` - Start web development server
+- `bun run electron` - Run Electron app
+- `bun run electron-dev` - Run Electron app in development mode
+- `bun run build` - Build Electron app for distribution
+- `bun run dist` - Create distributable package
 
 ## Dependencies
 
@@ -55,3 +65,17 @@ QShare features a modern, **light-themed** interface with:
 - express
 - express-fileupload
 - qrcode
+- electron (for desktop app)
+- electron-builder (for packaging)
+
+## Building for Distribution
+
+```bash
+# Install dependencies
+bun install
+
+# Build for macOS
+bun run dist
+```
+
+This creates a `.dmg` file in the `dist` folder that can be installed on any macOS machine.
